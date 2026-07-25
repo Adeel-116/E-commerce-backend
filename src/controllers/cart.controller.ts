@@ -9,15 +9,15 @@ export const getCart: RequestHandler = async (req, res) => {
 
 export const addToCart: RequestHandler = async (req, res) => {
   const { ownerId, ownerType } = req.cartOwner!;
-  const { productId, size, quantity = 1 } = req.body;
-  const message = await CartService.addToCart(ownerId, ownerType, productId, size, quantity);
+  const { productId, size, color, quantity = 1 } = req.body;
+  const message = await CartService.addToCart(ownerId, ownerType, productId, size, color, quantity);
   res.status(200).json({ success: true, message });
 };
 
 export const updateCartItemSize: RequestHandler = async (req, res) => {
   const { ownerId, ownerType } = req.cartOwner!;
-  const { productId, oldSize, newSize } = req.body;
-  await CartService.updateCartItemSize(ownerId, ownerType, productId, oldSize, newSize);
+  const { productId, oldSize, newSize, color } = req.body;
+  await CartService.updateCartItemSize(ownerId, ownerType, productId, oldSize, newSize, color);
   res.status(200).json({ success: true, message: "Cart size updated successfully" });
 };
 
@@ -28,7 +28,7 @@ export const removeFromCart: RequestHandler<
   RemoveFromCartQuery
 > = async (req, res) => {
   const { ownerId } = req.cartOwner!;
-  await CartService.removeFromCart(ownerId, req.query.productId!, req.query.size);
+  await CartService.removeFromCart(ownerId, req.query.productId!, req.query.size, req.query.color);
   res.status(200).json({ success: true, message: "Item removed" });
 };
 
@@ -43,9 +43,9 @@ export const updateQuantity: RequestHandler<
   UpdateQuantityBody
 > = async (req, res) => {
   const { ownerId } = req.cartOwner!;
-  const { productId, size, quantity } = req.body;
+  const { productId, size, color, quantity } = req.body;
 
-  await CartService.updateQuantity(ownerId, productId, size, quantity);
+  await CartService.updateQuantity(ownerId, productId, size, color, quantity);
   res.status(200).json({ success: true, message: "Quantity updated" });
 };
 

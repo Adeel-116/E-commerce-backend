@@ -14,6 +14,8 @@ import { calculateShipping } from "../services/shipping.service";
 import { generateOrderId } from "../utils/generateOrderId";
 import { User } from "../models/UserModel";
 
+const normalizeColor = (color?: string | null) => color ?? null;
+
 async function resolveOrderEmail(
   guestEmail: string | undefined,
   shippingEmail: string | undefined,
@@ -63,10 +65,11 @@ export const createCodOrder: RequestHandler = async (req, res) => {
     for (const item of validCartItems) {
       const product = (item as any).productId;
       const size: string = (item as any).size;
+      const color: string | null = (item as any).color ?? null;
       const price: number = product.price ?? 0;
       const quantity: number = (item as any).quantity ?? 1;
       rawSubtotal += price * quantity;
-      cartItems.push({ productId: product._id.toString(), size, price, quantity });
+      cartItems.push({ productId: product._id.toString(), size, color, price, quantity });
     }
     rawSubtotal = parseFloat(rawSubtotal.toFixed(2));
 
@@ -76,6 +79,7 @@ export const createCodOrder: RequestHandler = async (req, res) => {
     const discountedCartItems: CartItem[] = discountedLineItems.map((li) => ({
       productId: li.productId,
       size: li.size,
+      color: li.color ?? null,
       price: parseFloat((li.subtotal / li.quantity).toFixed(4)),
       quantity: li.quantity,
     }));
@@ -123,13 +127,17 @@ export const createCodOrder: RequestHandler = async (req, res) => {
 
     const orderItems = lineItems.map((li) => {
       const product = validCartItems.find(
-        (i) => i.productId._id.toString() === li.productId && i.size === li.size
+        (i) =>
+          i.productId._id.toString() === li.productId &&
+          i.size === li.size &&
+          normalizeColor(i.color) === normalizeColor(li.color)
       )?.productId;
       return {
         productId: li.productId,
         title: product?.title ?? "",
         image: product?.images?.[0] ?? "",
         size: li.size,
+        color: li.color ?? null,
         price: li.price,
         originalPrice: product?.price ?? li.price,
         quantity: li.quantity,

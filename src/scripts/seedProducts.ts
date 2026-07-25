@@ -21,6 +21,7 @@ const SAMPLE_PRODUCTS = [
     category: ["maxi"],
     sizes: ["S", "M", "L", "XL"],
     isNew: false,
+    isBestSeller: true,
     stock: true,
   },
   {
@@ -49,6 +50,7 @@ const SAMPLE_PRODUCTS = [
     category: ["fashion"],
     sizes: ["XS", "S", "M", "L", "XL"],
     isNew: false,
+    isBestSeller: true,
     stock: true,
   },
   {
@@ -63,6 +65,7 @@ const SAMPLE_PRODUCTS = [
     category: ["fashion"],
     sizes: ["S", "M", "L", "XL"],
     isNew: true,
+    isBestSeller: true,
     stock: true,
   },
   {
@@ -105,6 +108,7 @@ const SAMPLE_PRODUCTS = [
     category: ["top-jeans"],
     sizes: ["XS", "S", "M", "L"],
     isNew: true,
+    isBestSeller: true,
     stock: true,
   },
   {

@@ -5,6 +5,12 @@ import { AppError } from "../utils/AppError";
 import { resolveDiscounts, type CartItem, type LineItemDiscount } from "./discount.service";
 import { applyBundlePricing } from "./bundle.service";
 
+// A cart line is uniquely identified by (productId, size, color) — normalize
+// missing color to null so "no color selected" always compares consistently.
+const normalizeColor = (color?: string | null) => color ?? null;
+const sameLine = (a: { size: string; color?: string | null }, b: { size: string; color?: string | null }) =>
+  a.size === b.size && normalizeColor(a.color) === normalizeColor(b.color);
+
 const getOrCreateCart = async (ownerId: string, ownerType: "user" | "guest") => {
   let cart = await Cart.findOne({ ownerId });
   if (!cart) {
@@ -29,6 +35,7 @@ type PopulatedItem = {
     slug: string;
   };
   size: string;
+  color?: string | null;
   quantity: number;
 };
 
@@ -61,6 +68,7 @@ export const getCart = async (ownerId: string) => {
   const rawCartItems: CartItem[] = items.map((item) => ({
     productId: item.productId._id.toString(),
     size: item.size,
+    color: item.color ?? null,
     price: item.productId.price ?? 0,
     quantity: item.quantity,
   }));
@@ -79,6 +87,7 @@ export const getCart = async (ownerId: string) => {
   const discountedCartItems: CartItem[] = lineItems.map((li) => ({
     productId: li.productId,
     size: li.size,
+    color: li.color ?? null,
     price: parseFloat((li.subtotal / li.quantity).toFixed(4)),
     quantity: li.quantity,
   }));
@@ -92,15 +101,16 @@ export const getCart = async (ownerId: string) => {
   const itemsWithPricing = items.map((item, index) => {
     const originalPrice = rawCartItems[index].price;
     const finalPrice = cartItems.find(
-      (c) => c.productId === item.productId._id.toString() && c.size === item.size
+      (c) => c.productId === item.productId._id.toString() && sameLine(c, item)
     )!.price;
     const activeDiscount: LineItemDiscount | null =
       lineItems.find(
-        (li) => li.productId === item.productId._id.toString() && li.size === item.size
+        (li) => li.productId === item.productId._id.toString() && sameLine(li, item)
       )?.discount ?? null;
     return {
       productId: item.productId,
       size: item.size,
+      color: item.color ?? null,
       quantity: item.quantity,
       originalPrice,
       bundleApplied: finalPrice < originalPrice - 0.01,
@@ -128,6 +138,7 @@ export const addToCart = async (
   ownerType: "user" | "guest",
   productId: string,
   size: string,
+  color: string | null | undefined,
   quantity: number = 1
 ) => {
   if (!productId || !size) throw new AppError("productId and size are required", 400);
@@ -140,9 +151,9 @@ export const addToCart = async (
   }
 
   const cart = await getOrCreateCart(ownerId, ownerType);
-  type RawItem = { productId: mongoose.Types.ObjectId; size: string; quantity: number };
+  type RawItem = { productId: mongoose.Types.ObjectId; size: string; color?: string | null; quantity: number };
   const existing = cart.items.find(
-    (item: RawItem) => item.productId.toString() === productId && item.size === size
+    (item: RawItem) => item.productId.toString() === productId && sameLine(item, { size, color })
   ) as RawItem | undefined;
 
   if (existing) {
@@ -151,6 +162,7 @@ export const addToCart = async (
     cart.items.push({
       productId: new mongoose.Types.ObjectId(productId),
       size,
+      color: normalizeColor(color),
       quantity,
     } as unknown as (typeof cart.items)[number]);
   }
@@ -164,18 +176,23 @@ export const updateCartItemSize = async (
   _ownerType: "user" | "guest",
   productId: string,
   oldSize: string,
-  newSize: string
+  newSize: string,
+  color: string | null | undefined
 ) => {
   const cart = await Cart.findOne({ ownerId });
   if (!cart) throw new AppError("Cart not found", 404);
 
-  type CartItem = { productId: mongoose.Types.ObjectId; size: string; quantity: number };
+  type CartItem = { productId: mongoose.Types.ObjectId; size: string; color?: string | null; quantity: number };
   const items = cart.items as unknown as CartItem[];
 
-  const oldItem = items.find((i) => i.productId.toString() === productId && i.size === oldSize);
+  const oldItem = items.find(
+    (i) => i.productId.toString() === productId && sameLine(i, { size: oldSize, color })
+  );
   if (!oldItem) throw new AppError("Item not found in cart", 404);
 
-  const newItem = items.find((i) => i.productId.toString() === productId && i.size === newSize);
+  const newItem = items.find(
+    (i) => i.productId.toString() === productId && sameLine(i, { size: newSize, color })
+  );
   if (newItem) {
     newItem.quantity += oldItem.quantity;
     cart.items.splice(
@@ -189,9 +206,15 @@ export const updateCartItemSize = async (
   await cart.save();
 };
 
-export const removeFromCart = async (ownerId: string, productId: string, size?: string) => {
+export const removeFromCart = async (
+  ownerId: string,
+  productId: string,
+  size?: string,
+  color?: string | null
+) => {
   const pull: Record<string, unknown> = { productId };
   if (size) pull.size = size;
+  if (color) pull.color = color;
   await Cart.updateOne({ ownerId }, { $pull: { items: pull } });
 };
 
@@ -203,15 +226,16 @@ export const updateQuantity = async (
   ownerId: string,
   productId: string,
   size: string,
+  color: string | null | undefined,
   quantity: number
 ) => {
   if (quantity < 1) throw new AppError("Quantity must be at least 1", 400);
   const cart = await Cart.findOne({ ownerId });
   if (!cart) throw new AppError("Cart not found", 404);
 
-  type CartItem = { productId: mongoose.Types.ObjectId; size: string; quantity: number };
+  type CartItem = { productId: mongoose.Types.ObjectId; size: string; color?: string | null; quantity: number };
   const item = (cart.items as unknown as CartItem[]).find(
-    (i) => i.productId.toString() === productId && i.size === size
+    (i) => i.productId.toString() === productId && sameLine(i, { size, color })
   );
   if (!item) throw new AppError("Item not found in cart", 404);
 
@@ -227,7 +251,7 @@ export const mergeCarts = async (userId: string, guestId: string) => {
 
   if (!guestCart || guestCart.items.length === 0) return;
 
-  type RawItem = { productId: mongoose.Types.ObjectId; size: string; quantity: number };
+  type RawItem = { productId: mongoose.Types.ObjectId; size: string; color?: string | null; quantity: number };
   const guestProductIds = guestCart.items.map((item: RawItem) => item.productId);
   const inStockProducts = await Product.find({
     _id: { $in: guestProductIds },
@@ -235,8 +259,7 @@ export const mergeCarts = async (userId: string, guestId: string) => {
   }).lean();
   const inStockIds = new Set(inStockProducts.map((p) => p._id.toString()));
 
-  type CartItem = { productId: mongoose.Types.ObjectId; size: string; quantity: number };
-  const validGuestItems = (guestCart.items as unknown as CartItem[]).filter((item) =>
+  const validGuestItems = (guestCart.items as unknown as RawItem[]).filter((item) =>
     inStockIds.has(item.productId.toString())
   );
 
@@ -249,8 +272,8 @@ export const mergeCarts = async (userId: string, guestId: string) => {
     });
   } else {
     for (const guestItem of validGuestItems) {
-      const existing = (userCart.items as unknown as CartItem[]).find(
-        (i) => i.productId.toString() === guestItem.productId.toString() && i.size === guestItem.size
+      const existing = (userCart.items as unknown as RawItem[]).find(
+        (i) => i.productId.toString() === guestItem.productId.toString() && sameLine(i, guestItem)
       );
       if (existing) {
         existing.quantity += guestItem.quantity;

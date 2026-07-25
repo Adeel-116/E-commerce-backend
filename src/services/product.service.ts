@@ -48,6 +48,7 @@ const buildMongoFilter = (q: ProductFilterQuery) => {
   if (q.status) filter.status = q.status;
   if (q.category) filter.category = { $in: [q.category] };
   if (q.size) filter.sizes = { $in: [q.size] };
+  if (q.isBestSeller) filter.isBestSeller = q.isBestSeller === "true";
   if (q.minPrice || q.maxPrice) {
     const r: Record<string, number> = {};
     if (q.minPrice) r.$gte = Number(q.minPrice);
@@ -172,8 +173,10 @@ export const createProduct = async (body: CreateProductInput) => {
     stock: body.stock === "true" || body.stock === true,
     status: (body.status ?? "active") as "active" | "inactive",
     isNew: body.isNew === "true" || body.isNew === true,
+    isBestSeller: body.isBestSeller === "true" || body.isBestSeller === true,
     category: body.category ?? [],
     sizes: body.sizes ?? [],
+    colors: body.colors ?? [],
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any);
 };
@@ -193,8 +196,12 @@ export const updateProduct = async (id: string, body: UpdateProductInput) => {
   if (body.stock !== undefined) updates.stock = body.stock === "true" || body.stock === true;
   if (body.status !== undefined) updates.status = body.status;
   if (body.isNew !== undefined) updates.isNew = body.isNew === "true" || body.isNew === true;
+  if (body.isBestSeller !== undefined) {
+    updates.isBestSeller = body.isBestSeller === "true" || body.isBestSeller === true;
+  }
   if (body.category !== undefined) updates.category = body.category;
   if (body.sizes !== undefined) updates.sizes = body.sizes;
+  if (body.colors !== undefined) updates.colors = body.colors;
 
   const product = await Product.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
   if (!product) throw new AppError("Product not found", 404);
@@ -280,6 +287,7 @@ export const bulkImportFromCSV = async (filePath: string): Promise<SaveResult> =
       category: splitList(row.category || row.Category || "").map((c) => c.toLowerCase()),
       sizes: splitList(row.sizes || row.Sizes || "").map((s) => s.toUpperCase()),
       isNew: (row.isNew || row.IsNew || "false").toLowerCase() === "true",
+      isBestSeller: (row.isBestSeller || row.IsBestSeller || "false").toLowerCase() === "true",
       stock: (row.stock || row.Stock || "true").toLowerCase() !== "false",
       status: (row.status || row.Status || "active").toLowerCase(),
     });

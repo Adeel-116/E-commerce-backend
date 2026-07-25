@@ -9,6 +9,7 @@ import type { CreateDiscountInput } from "../types";
 export type CartItem = {
   productId: string;
   size: string;
+  color?: string | null;
   price: number;
   quantity: number;
 };
@@ -40,6 +41,7 @@ export type ResolveResult = {
   lineItems: {
     productId: string;
     size: string;
+    color?: string | null;
     price: number;
     quantity: number;
     subtotal: number;

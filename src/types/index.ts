@@ -2,6 +2,12 @@ import { Request } from "express";
 
 // ── Product ───────────────────────────────────────────────────────────────────
 
+export interface ColorVariant {
+  name: string;
+  hex: string;
+  images: string[];
+}
+
 export interface ProductDocument {
   productId: number;
   title: string;
@@ -12,6 +18,7 @@ export interface ProductDocument {
   comparePrice: number | null;
   category: string[];
   sizes: string[];
+  colors: ColorVariant[];
   isNew: boolean;
   stock: boolean;
   status: "active" | "inactive";
@@ -30,6 +37,7 @@ export interface ProductFilterQuery {
   size?: string;
   minPrice?: string;
   maxPrice?: string;
+  isBestSeller?: string;
 }
 
 export interface CreateProductInput {
@@ -41,8 +49,10 @@ export interface CreateProductInput {
   stock?: boolean | string;
   status?: string;
   isNew?: boolean | string;
+  isBestSeller?: boolean | string;
   category?: string[];
   sizes?: string[];
+  colors?: ColorVariant[];
 }
 
 export type UpdateProductInput = Partial<CreateProductInput>;
@@ -81,17 +91,20 @@ export interface CartOwner {
 export interface AddToCartBody {
   productId: string;
   size: string;
+  color?: string;
 }
 
 export interface RemoveFromCartQuery {
   productId?: string;
   size?: string;
+  color?: string;
 }
 
 export interface UpdateQuantityBody {
   productId: string;
   size: string;
   quantity: number;
+  color?: string;
 }
 
 export type CartRequest = Request & { cartOwner: CartOwner };
