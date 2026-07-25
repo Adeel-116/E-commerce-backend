@@ -1,5 +1,5 @@
-export const SHIPPING_COST = 20;
-export const FREE_SHIPPING_THRESHOLD = 200;
+export const SHIPPING_COST = 200;
+export const FREE_SHIPPING_THRESHOLD = 3000;
 const STANDARD_SHIPPING_LABEL = "Standard shipping";
 const FREE_SHIPPING_LABEL = "Free shipping";
 
