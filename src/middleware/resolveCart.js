@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { v4: uuidv4 } = require("uuid");
+const { randomUUID } = require("crypto");
 
 const resolveCart = (
     req,
@@ -38,7 +38,7 @@ const resolveCart = (
     if (existingGuestId) {
         req.cartOwner = { ownerId: existingGuestId, ownerType: "guest" };
     } else {
-        const guestId = uuidv4();
+        const guestId = randomUUID();
         res.cookie("guestId", guestId, {
             httpOnly: false,
             maxAge: 7 * 24 * 60 * 60 * 1000,
