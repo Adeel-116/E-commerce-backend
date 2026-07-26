@@ -24,6 +24,11 @@ const getProductById = async (req, res) => {
   res.status(200).json({ success: true, message: "Product fetched successfully", data });
 };
 
+const getActiveCategories = async (req, res) => {
+  const data = await ProductService.getActiveCategories();
+  res.status(200).json({ success: true, data });
+};
+
 // ── Admin CRUD ────────────────────────────────────────────────────────────────
 
 const createProduct = async (req, res) => {
@@ -81,6 +86,7 @@ module.exports = {
   filterProducts,
   getTitleSuggestions,
   getProductById,
+  getActiveCategories,
   createProduct,
   editProduct,
   deleteProduct,

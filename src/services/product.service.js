@@ -59,6 +59,10 @@ const buildSort = (sort) => {
   }
 };
 
+const getActiveCategories = async () => {
+  return Product.distinct("category", { status: "active" });
+};
+
 const now = () => new Date();
 
 // Only one discount can be active system-wide, so this returns at most one document.
@@ -303,6 +307,7 @@ module.exports = {
   filterProducts,
   getTitleSuggestions,
   getProductById,
+  getActiveCategories,
   createProduct,
   updateProduct,
   deleteProduct,
