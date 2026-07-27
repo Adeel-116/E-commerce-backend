@@ -28,6 +28,10 @@ const productSchema = new mongoose.Schema(
         isBestSeller: { type: Boolean, default: false },
         stock: { type: Boolean, default: true },
         status: { type: String, enum: ["active", "inactive"], default: "active" },
+        // Lower numbers show first on the homepage Best Sellers grid and the
+        // Shop page's default "Best Selling" sort. Products default to 0 and
+        // fall back to newest-first among themselves (see product.service.js buildSort).
+        displayOrder: { type: Number, default: 0 },
     },
     {
         timestamps: true,
