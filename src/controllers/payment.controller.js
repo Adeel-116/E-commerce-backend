@@ -118,9 +118,7 @@ const createCodOrder = async (req, res) => {
 
     const { cost: shippingCost } = calculateShipping(rawSubtotal);
     const total = parseFloat((discountedSubtotal + shippingCost).toFixed(2));
-    const totalOrdersDB = await OrderModel.countDocuments();
-
-    const orderId = await generateOrderId(totalOrdersDB);
+    const orderId = await generateOrderId();
 
     const orderItems = lineItems.map((li) => {
       const product = validCartItems.find(
