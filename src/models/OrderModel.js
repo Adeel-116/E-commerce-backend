@@ -48,7 +48,7 @@ const ShippingAddressSchema = new Schema(
         line2: { type: String },
         city: { type: String, required: true },
         state: { type: String, required: true },
-        postalCode: { type: String, required: true },
+        postalCode: { type: String },
         country: { type: String, required: true },
         phone: { type: String, required: true },
     },
