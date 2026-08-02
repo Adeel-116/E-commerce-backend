@@ -16,6 +16,14 @@ const getTitleSuggestions = async (req, res) => {
   res.status(200).json({ success: true, total: data.length, data });
 };
 
+const getSimilarProducts = async (req, res) => {
+  const excludeId = req.query.excludeId;
+  const limit = Number(req.query.limit) || 5;
+  if (!excludeId) throw new AppError("excludeId is required", 400);
+  const data = await ProductService.getSimilarProducts(excludeId, limit);
+  res.status(200).json({ success: true, total: data.length, data });
+};
+
 const getProductById = async (req, res) => {
   const data = await ProductService.getProductById(
     req.query.id,
@@ -85,6 +93,7 @@ const uploadProductImage = async (req, res) => {
 module.exports = {
   filterProducts,
   getTitleSuggestions,
+  getSimilarProducts,
   getProductById,
   getActiveCategories,
   createProduct,

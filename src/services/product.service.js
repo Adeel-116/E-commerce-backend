@@ -122,6 +122,24 @@ const getTitleSuggestions = async (search, limit) => {
     .lean();
 };
 
+const getSimilarProducts = async (excludeId, limit) => {
+  const [products, discounts] = await Promise.all([
+    Product.find({
+      status: "active",
+      showInYouMayAlsoLike: true,
+      _id: { $ne: excludeId },
+    })
+      .sort({ displayOrder: 1, createdAt: -1 })
+      .limit(limit)
+      .lean(),
+    getActiveDiscounts(),
+  ]);
+  return products.map((p) => ({
+    ...p,
+    activeDiscount: attachDiscount(p._id.toString(), discounts),
+  }));
+};
+
 const getProductById = async (id, slug) => {
   if (!id && !slug) throw new AppError("id or slug is required", 400);
   const query = id ? { _id: id } : { slug };
@@ -164,6 +182,7 @@ const createProduct = async (body) => {
     status: body.status ?? "active",
     isNew: body.isNew === "true" || body.isNew === true,
     isBestSeller: body.isBestSeller === "true" || body.isBestSeller === true,
+    showInYouMayAlsoLike: body.showInYouMayAlsoLike === "true" || body.showInYouMayAlsoLike === true,
     category: body.category ?? [],
     sizes: body.sizes ?? [],
     colors: body.colors ?? [],
@@ -188,6 +207,9 @@ const updateProduct = async (id, body) => {
   if (body.isNew !== undefined) updates.isNew = body.isNew === "true" || body.isNew === true;
   if (body.isBestSeller !== undefined) {
     updates.isBestSeller = body.isBestSeller === "true" || body.isBestSeller === true;
+  }
+  if (body.showInYouMayAlsoLike !== undefined) {
+    updates.showInYouMayAlsoLike = body.showInYouMayAlsoLike === "true" || body.showInYouMayAlsoLike === true;
   }
   if (body.category !== undefined) updates.category = body.category;
   if (body.sizes !== undefined) updates.sizes = body.sizes;
@@ -311,6 +333,7 @@ module.exports = {
   generateUniqueSlug,
   filterProducts,
   getTitleSuggestions,
+  getSimilarProducts,
   getProductById,
   getActiveCategories,
   createProduct,
