@@ -1,5 +1,6 @@
 const fs = require("fs");
 const { Transform } = require("stream");
+const { Types } = require("mongoose");
 const csvParser = require("csv-parser");
 const Product = require("../models/ProductModel");
 const { Discount } = require("../models/DiscountModel");
@@ -50,16 +51,34 @@ const buildMongoFilter = (q) => {
   return filter;
 };
 
+// displayOrder defaults to 0 for products that haven't been manually
+// ranked yet. Sorting displayOrder ascending puts those unranked products
+// BEFORE anything explicitly numbered 1, 2, 3... which is backwards — 0
+// means "no preference", so it must sort to the end, not the front.
+// rankSortField remaps 0 -> Infinity in an $addFields stage so ranked
+// products (1, 2, 3...) come first in order, with unranked ones trailing
+// after; usesRankField tells callers whether that stage is needed.
 const buildSort = (sort) => {
   switch (sort) {
-    case "price-asc": return { price: 1 };
-    case "price-desc": return { price: -1 };
-    case "oldest": return { createdAt: 1 };
+    case "price-asc": return { sort: { price: 1 }, usesRankField: false };
+    case "price-desc": return { sort: { price: -1 }, usesRankField: false };
+    case "oldest": return { sort: { _rankOrder: 1, _id: 1 }, usesRankField: true };
     // "Best Selling" (Shop page default) and the homepage Best Sellers grid
-    // both fall through here — lower displayOrder shows first, and products
-    // sharing the same displayOrder (e.g. the default 0) fall back to newest-first.
-    default: return { displayOrder: 1, createdAt: -1 };
+    // both fall through here — ranked products (displayOrder 1, 2, 3...)
+    // show first in ascending order, unranked ones (displayOrder 0) trail
+    // after. Tie-break uses _id (not createdAt) because several existing
+    // products have no createdAt set, which made their relative order
+    // unstable — _id always exists and already encodes creation time.
+    default: return { sort: { _rankOrder: 1, _id: -1 }, usesRankField: true };
   }
+};
+
+const RANK_ORDER_STAGE = {
+  $addFields: {
+    _rankOrder: {
+      $cond: [{ $eq: ["$displayOrder", 0] }, Infinity, "$displayOrder"],
+    },
+  },
 };
 
 const getActiveCategories = async () => {
@@ -101,9 +120,16 @@ const filterProducts = async (q) => {
   const limit = Math.min(50000, Math.max(1, Number(q.limit) || 12));
   const skip = (page - 1) * limit;
   const filter = buildMongoFilter(q);
-  const sort = buildSort(q.sort);
+  const { sort, usesRankField } = buildSort(q.sort);
+  const pipeline = [
+    { $match: filter },
+    ...(usesRankField ? [RANK_ORDER_STAGE] : []),
+    { $sort: sort },
+    { $skip: skip },
+    { $limit: limit },
+  ];
   const [products, total, discounts] = await Promise.all([
-    Product.find(filter).sort(sort).skip(skip).limit(limit).lean(),
+    Product.aggregate(pipeline),
     Product.countDocuments(filter),
     getActiveDiscounts(),
   ]);
@@ -120,6 +146,28 @@ const getTitleSuggestions = async (search, limit) => {
     .select("title slug")
     .limit(limit)
     .lean();
+};
+
+const getSimilarProducts = async (excludeId, limit) => {
+  const [products, discounts] = await Promise.all([
+    Product.aggregate([
+      {
+        $match: {
+          status: "active",
+          showInYouMayAlsoLike: true,
+          _id: { $ne: new Types.ObjectId(excludeId) },
+        },
+      },
+      RANK_ORDER_STAGE,
+      { $sort: { _rankOrder: 1, _id: -1 } },
+      { $limit: limit },
+    ]),
+    getActiveDiscounts(),
+  ]);
+  return products.map((p) => ({
+    ...p,
+    activeDiscount: attachDiscount(p._id.toString(), discounts),
+  }));
 };
 
 const getProductById = async (id, slug) => {
@@ -164,6 +212,7 @@ const createProduct = async (body) => {
     status: body.status ?? "active",
     isNew: body.isNew === "true" || body.isNew === true,
     isBestSeller: body.isBestSeller === "true" || body.isBestSeller === true,
+    showInYouMayAlsoLike: body.showInYouMayAlsoLike === "true" || body.showInYouMayAlsoLike === true,
     category: body.category ?? [],
     sizes: body.sizes ?? [],
     colors: body.colors ?? [],
@@ -188,6 +237,9 @@ const updateProduct = async (id, body) => {
   if (body.isNew !== undefined) updates.isNew = body.isNew === "true" || body.isNew === true;
   if (body.isBestSeller !== undefined) {
     updates.isBestSeller = body.isBestSeller === "true" || body.isBestSeller === true;
+  }
+  if (body.showInYouMayAlsoLike !== undefined) {
+    updates.showInYouMayAlsoLike = body.showInYouMayAlsoLike === "true" || body.showInYouMayAlsoLike === true;
   }
   if (body.category !== undefined) updates.category = body.category;
   if (body.sizes !== undefined) updates.sizes = body.sizes;
@@ -311,6 +363,7 @@ module.exports = {
   generateUniqueSlug,
   filterProducts,
   getTitleSuggestions,
+  getSimilarProducts,
   getProductById,
   getActiveCategories,
   createProduct,

@@ -26,6 +26,10 @@ const productSchema = new mongoose.Schema(
         colors: { type: [colorVariantSchema], default: [] },
         isNew: { type: Boolean, default: false },
         isBestSeller: { type: Boolean, default: false },
+        // Admin-controlled eligibility for the product detail page's "You
+        // May Also Like" section — only products with this on can appear
+        // there (see product.service.js getSimilarProducts).
+        showInYouMayAlsoLike: { type: Boolean, default: false },
         stock: { type: Boolean, default: true },
         status: { type: String, enum: ["active", "inactive"], default: "active" },
         // Lower numbers show first on the homepage Best Sellers grid and the
