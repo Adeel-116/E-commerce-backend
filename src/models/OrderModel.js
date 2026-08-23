@@ -42,14 +42,15 @@ const PricingSchema = new Schema(
 
 const ShippingAddressSchema = new Schema(
     {
-        fullName: { type: String, required: true },
+        fullName: { type: String,  },
         email: { type: String },
         line1: { type: String, required: true },
         line2: { type: String },
         city: { type: String, required: true },
         state: { type: String, required: true },
-        postalCode: { type: String, required: true },
+        postalCode: { type: String, },
         country: { type: String, required: true },
+        
         phone: { type: String, required: true },
     },
     { _id: false }
@@ -82,6 +83,13 @@ const OrderSchema = new Schema(
         status: {
             type: String,
             enum: ["processing", "preparation", "shipped", "delivered", "cancelled", "returned"],
+            enum: [
+                "processing",
+                "dispatch",
+                "delivered",
+                "returned",
+                "cancelled",
+            ],
             default: "processing",
             index: true,
         },

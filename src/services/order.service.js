@@ -3,21 +3,13 @@ const { AppError } = require("../utils/AppError");
 
 const ORDER_STATUSES = [
   "processing",
-  "preparation",
-  "shipped",
+  "dispatch",
   "delivered",
   "cancelled",
   "returned",
+  "cancelled",
 ];
 
-const ALLOWED_TRANSITIONS = {
-  processing: ["preparation", "cancelled"],
-  preparation: ["shipped", "cancelled"],
-  shipped: ["delivered"],
-  delivered: ["returned"],
-  cancelled: [],
-  returned: [],
-};
 
 const getOrderHistory = async (userId, page, limit) => {
   const skip = (page - 1) * limit;
@@ -46,19 +38,29 @@ const getAllOrders = async (page, limit, status) => {
 
 const updateOrderStatus = async (orderId, newStatus) => {
   if (!ORDER_STATUSES.includes(newStatus)) {
-    throw new AppError(`Invalid status. Must be one of: ${ORDER_STATUSES.join(", ")}`, 400);
-  }
-  const order = await OrderModel.findOne({ orderId });
-  if (!order) throw new AppError("Order not found", 404);
-  const previousStatus = order.status;
-  const allowed = ALLOWED_TRANSITIONS[previousStatus] ?? [];
-  if (!allowed.includes(newStatus)) {
-    throw new AppError(`Cannot transition from "${previousStatus}" to "${newStatus}"`, 400);
+    throw new AppError(
+      `Invalid status. Must be one of: ${ORDER_STATUSES.join(", ")}`,
+      400
+    );
   }
 
+  const order = await OrderModel.findOne({ orderId });
+
+  if (!order) {
+    throw new AppError("Order not found", 404);
+  }
+
+  const previousStatus = order.status;
+
+  // Direct status update — no transition restriction
   order.status = newStatus;
+
   await order.save();
-  return { order, previousStatus };
+
+  return {
+    order,
+    previousStatus,
+  };
 };
 
 const PAYMENT_STATUSES = ["pending", "paid", "failed", "refunded"];
@@ -202,6 +204,21 @@ const getCustomerOrderStats = async ({
   };
 };
 
+
+
+const getOrdersForExport = async (orderIds) => {
+  const filter =
+    Array.isArray(orderIds) && orderIds.length > 0
+      ? { orderId: { $in: orderIds } }
+      : {}; // empty/omitted => sab orders
+
+  const orders = await OrderModel.find(filter)
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return orders;
+};
+
 module.exports = {
   getOrderHistory,
   getOrderById,
@@ -210,4 +227,5 @@ module.exports = {
   updatePaymentStatus,
   deleteOrder,
   getCustomerOrderStats,
+  getOrdersForExport
 };

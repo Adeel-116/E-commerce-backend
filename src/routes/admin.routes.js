@@ -1,7 +1,7 @@
 const { Router } = require("express");
 const multer = require("multer");
 const { createProduct, editProduct, deleteProduct, bulkCSVUpload, uploadProductImage } = require("../controllers/product.controller");
-const { getAllOrders, updateOrderStatus, updatePaymentStatus, deleteOrder, getOrderEmails } = require("../controllers/order.controller");
+const { getAllOrders, updateOrderStatus, updatePaymentStatus, deleteOrder, getOrderEmails, exportOrders } = require("../controllers/order.controller");
 const { getDashboardStats } = require("../controllers/dashboard.controller");
 const { createDiscount, updateDiscount, deleteDiscount, getAllDiscounts, } = require("../controllers/discount.controller");
 const { getAllSubscribers, deleteSubscriber, } = require("../controllers/subscriber.controller");
@@ -30,6 +30,10 @@ router.post("/upload-image", uploadImage.single("image"), uploadProductImage);
 
 // Dashboard
 router.get("/dashboard/stats", getDashboardStats);
+
+
+// get order CSV 
+router.post("/orders/export", exportOrders);
 
 // Discounts
 router.post("/create/discount", createDiscount);
