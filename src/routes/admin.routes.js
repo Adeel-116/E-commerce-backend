@@ -1,10 +1,37 @@
 const { Router } = require("express");
 const multer = require("multer");
-const { createProduct, editProduct, deleteProduct, bulkCSVUpload, uploadProductImage } = require("../controllers/product.controller");
-const { getAllOrders, updateOrderStatus, updatePaymentStatus, deleteOrder, getOrderEmails, exportOrders } = require("../controllers/order.controller");
+const {
+  createProduct,
+  editProduct,
+  deleteProduct,
+  bulkCSVUpload,
+  uploadProductImage,
+} = require("../controllers/product.controller");
+const {
+  getAllOrders,
+  updateOrderStatus,
+  updatePaymentStatus,
+  deleteOrder,
+  getOrderEmails,
+  exportOrders,
+} = require("../controllers/order.controller");
 const { getDashboardStats } = require("../controllers/dashboard.controller");
-const { createDiscount, updateDiscount, deleteDiscount, getAllDiscounts, } = require("../controllers/discount.controller");
-const { getAllSubscribers, deleteSubscriber, } = require("../controllers/subscriber.controller");
+const {
+  createDiscount,
+  updateDiscount,
+  deleteDiscount,
+  getAllDiscounts,
+} = require("../controllers/discount.controller");
+const {
+  getAllSubscribers,
+  deleteSubscriber,
+} = require("../controllers/subscriber.controller");
+const {
+  getMarketingCost,
+  createCampaign,
+  updateCampaign,
+  deleteCampaign,
+} = require("../controllers/marketing.controller");
 const { protect, protectAdmin } = require("../middleware/auth");
 const { uploadCsv } = require("../middleware/uploadCsv");
 const { uploadImage } = require("../middleware/uploadImage");
@@ -19,7 +46,7 @@ router.get("/orders", getAllOrders);
 router.patch("/orders/status/:orderId", updateOrderStatus);
 router.patch("/orders/payment-status/:orderId", updatePaymentStatus);
 router.delete("/orders/delete", deleteOrder);
-router.get("/get-orders-email", getOrderEmails)
+router.get("/get-orders-email", getOrderEmails);
 
 // Product management
 router.post("/create-product", upload.none(), createProduct);
@@ -31,8 +58,7 @@ router.post("/upload-image", uploadImage.single("image"), uploadProductImage);
 // Dashboard
 router.get("/dashboard/stats", getDashboardStats);
 
-
-// get order CSV 
+// get order CSV
 router.post("/orders/export", exportOrders);
 
 // Discounts
@@ -44,5 +70,11 @@ router.put("/discount/update", updateDiscount);
 // Subscribers
 router.get("/subscribers", getAllSubscribers);
 router.delete("/subscribers/delete", deleteSubscriber);
+
+// Marketing
+router.get("/marketing", getMarketingCost);
+router.post("/marketing", createCampaign);
+router.put("/marketing/:id", updateCampaign);
+router.delete("/marketing/:id", deleteCampaign);
 
 module.exports = router;
