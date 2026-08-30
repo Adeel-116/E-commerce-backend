@@ -7,21 +7,45 @@ const getCart = async (req, res) => {
 
 const addToCart = async (req, res) => {
   const { ownerId, ownerType } = req.cartOwner;
-  const { productId, size, color, quantity = 1 } = req.body;
-  const message = await CartService.addToCart(ownerId, ownerType, productId, size, color, quantity);
+  const { productId, size, color, stitching, quantity = 1 } = req.body;
+  const message = await CartService.addToCart(
+    ownerId,
+    ownerType,
+    productId,
+    size,
+    color,
+    stitching,
+    quantity,
+  );
   res.status(200).json({ success: true, message });
 };
 
 const updateCartItemSize = async (req, res) => {
   const { ownerId, ownerType } = req.cartOwner;
-  const { productId, oldSize, newSize, color } = req.body;
-  await CartService.updateCartItemSize(ownerId, ownerType, productId, oldSize, newSize, color);
-  res.status(200).json({ success: true, message: "Cart size updated successfully" });
+  const { productId, oldSize, newSize, color, stitching } = req.body;
+  await CartService.updateCartItemSize(
+    ownerId,
+    ownerType,
+    productId,
+    oldSize,
+    newSize,
+    color,
+    stitching,
+  );
+  res
+    .status(200)
+    .json({ success: true, message: "Cart size updated successfully" });
 };
 
 const removeFromCart = async (req, res) => {
   const { ownerId } = req.cartOwner;
-  await CartService.removeFromCart(ownerId, req.query.productId, req.query.size, req.query.color);
+  await CartService.removeFromCart(
+    ownerId,
+    req.query.productId,
+    req.query.size,
+    req.query.color,
+    req.query.stitching,
+  );
   res.status(200).json({ success: true, message: "Item removed" });
 };
 
@@ -32,16 +56,21 @@ const clearCart = async (req, res) => {
 
 const updateQuantity = async (req, res) => {
   const { ownerId } = req.cartOwner;
-  const { productId, size, color, quantity } = req.body;
+  const { productId, size, color, stitching, quantity } = req.body;
 
-  await CartService.updateQuantity(ownerId, productId, size, color, quantity);
+  await CartService.updateQuantity(
+    ownerId,
+    productId,
+    size,
+    color,
+    stitching,
+    quantity,
+  );
   res.status(200).json({ success: true, message: "Quantity updated" });
 };
 
 const mergeCart = async (req, res) => {
-  const guestId =
-    req.headers["x-guest-id"] ||
-    req.cookies.guestId;
+  const guestId = req.headers["x-guest-id"] || req.cookies.guestId;
 
   if (!guestId) {
     return res.status(200).json({ success: true, message: "Nothing to merge" });

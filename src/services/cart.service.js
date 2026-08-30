@@ -8,8 +8,11 @@ const { applyBundlePricing } = require("./bundle.service");
 // A cart line is uniquely identified by (productId, size, color) — normalize
 // missing color to null so "no color selected" always compares consistently.
 const normalizeColor = (color) => color ?? null;
+const normalizeStitching = (stitching) => stitching ?? null;
 const sameLine = (a, b) =>
-  a.size === b.size && normalizeColor(a.color) === normalizeColor(b.color);
+  a.size === b.size &&
+  normalizeColor(a.color) === normalizeColor(b.color) &&
+  normalizeStitching(a.stitching) === normalizeStitching(b.stitching);
 
 const getOrCreateCart = async (ownerId, ownerType) => {
   let cart = await Cart.findOne({ ownerId });
@@ -19,17 +22,18 @@ const getOrCreateCart = async (ownerId, ownerType) => {
       ownerType,
       items: [],
       expiresAt:
-        ownerType === "guest" ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null,
+        ownerType === "guest"
+          ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          : null,
     });
   }
   return cart;
 };
 
 const getCart = async (ownerId) => {
-
   const cart = await Cart.findOne({ ownerId }).populate(
     "items.productId",
-    "title images colors price stock slug"
+    "title images colors price stock slug",
   );
 
   const emptyPricing = {
@@ -41,26 +45,46 @@ const getCart = async (ownerId) => {
   };
 
   if (!cart || cart.items.length === 0) {
-    return { _id: cart?._id, items: [], pricing: emptyPricing, appliedBundles: [], appliedDiscounts: [] };
+    return {
+      _id: cart?._id,
+      items: [],
+      pricing: emptyPricing,
+      appliedBundles: [],
+      appliedDiscounts: [],
+    };
   }
-  const items = cart.items.filter(
-    (item) => item.productId != null
-  );
+  const items = cart.items.filter((item) => item.productId != null);
 
   if (items.length === 0) {
-    return { _id: cart._id, items: [], pricing: emptyPricing, appliedBundles: [], appliedDiscounts: [] };
+    return {
+      _id: cart._id,
+      items: [],
+      pricing: emptyPricing,
+      appliedBundles: [],
+      appliedDiscounts: [],
+    };
   }
 
-  const rawCartItems = items.map((item) => ({
-    productId: item.productId._id.toString(),
-    size: item.size,
-    color: item.color ?? null,
-    price: item.productId.price ?? 0,
-    quantity: item.quantity,
-  }));
+  const rawCartItems = items.map((item) => {
+    let price = item.productId.price ?? 0;
+    if (
+      item.stitching === "stitched" &&
+      typeof item.productId.stitchedPrice === "number"
+    ) {
+      price = item.productId.stitchedPrice;
+    }
+    return {
+      productId: item.productId._id.toString(),
+      size: item.size,
+      color: item.color ?? null,
+      stitching: item.stitching ?? null,
+      price: price,
+      quantity: item.quantity,
+    };
+  });
 
   const subtotal = parseFloat(
-    rawCartItems.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2)
+    rawCartItems.reduce((sum, i) => sum + i.price * i.quantity, 0).toFixed(2),
   );
 
   const {
@@ -74,29 +98,35 @@ const getCart = async (ownerId) => {
     productId: li.productId,
     size: li.size,
     color: li.color ?? null,
+    stitching: li.stitching ?? null,
     price: parseFloat((li.subtotal / li.quantity).toFixed(4)),
     quantity: li.quantity,
   }));
 
   // 2. Bundle savings are subtracted from the already-discounted amount.
-  const { items: cartItems, appliedBundles, totalBundleSavings: bundleSavings } =
-    await applyBundlePricing(discountedCartItems);
+  const {
+    items: cartItems,
+    appliedBundles,
+    totalBundleSavings: bundleSavings,
+  } = await applyBundlePricing(discountedCartItems);
 
   const total = parseFloat((afterDiscountSubtotal - bundleSavings).toFixed(2));
 
   const itemsWithPricing = items.map((item, index) => {
     const originalPrice = rawCartItems[index].price;
     const finalPrice = cartItems.find(
-      (c) => c.productId === item.productId._id.toString() && sameLine(c, item)
+      (c) => c.productId === item.productId._id.toString() && sameLine(c, item),
     ).price;
     const activeDiscount =
       lineItems.find(
-        (li) => li.productId === item.productId._id.toString() && sameLine(li, item)
+        (li) =>
+          li.productId === item.productId._id.toString() && sameLine(li, item),
       )?.discount ?? null;
     return {
       productId: item.productId,
       size: item.size,
       color: item.color ?? null,
+      stitching: item.stitching ?? null,
       quantity: item.quantity,
       originalPrice,
       bundleApplied: finalPrice < originalPrice - 0.01,
@@ -125,9 +155,11 @@ const addToCart = async (
   productId,
   size,
   color,
-  quantity = 1
+  stitching,
+  quantity = 1,
 ) => {
-  if (!productId || !size) throw new AppError("productId and size are required", 400);
+  if (!productId || !size)
+    throw new AppError("productId and size are required", 400);
   const product = await Product.findById(productId).lean();
   if (!product) throw new AppError("Product not found", 404);
   if (!product.stock) throw new AppError("Product is out of stock", 400);
@@ -138,7 +170,9 @@ const addToCart = async (
 
   const cart = await getOrCreateCart(ownerId, ownerType);
   const existing = cart.items.find(
-    (item) => item.productId.toString() === productId && sameLine(item, { size, color })
+    (item) =>
+      item.productId.toString() === productId &&
+      sameLine(item, { size, color, stitching }),
   );
 
   if (existing) {
@@ -148,6 +182,7 @@ const addToCart = async (
       productId: new mongoose.Types.ObjectId(productId),
       size,
       color: normalizeColor(color),
+      stitching: normalizeStitching(stitching),
       quantity,
     });
   }
@@ -162,7 +197,8 @@ const updateCartItemSize = async (
   productId,
   oldSize,
   newSize,
-  color
+  color,
+  stitching,
 ) => {
   const cart = await Cart.findOne({ ownerId });
   if (!cart) throw new AppError("Cart not found", 404);
@@ -170,19 +206,20 @@ const updateCartItemSize = async (
   const items = cart.items;
 
   const oldItem = items.find(
-    (i) => i.productId.toString() === productId && sameLine(i, { size: oldSize, color })
+    (i) =>
+      i.productId.toString() === productId &&
+      sameLine(i, { size: oldSize, color, stitching }),
   );
   if (!oldItem) throw new AppError("Item not found in cart", 404);
 
   const newItem = items.find(
-    (i) => i.productId.toString() === productId && sameLine(i, { size: newSize, color })
+    (i) =>
+      i.productId.toString() === productId &&
+      sameLine(i, { size: newSize, color, stitching }),
   );
   if (newItem) {
     newItem.quantity += oldItem.quantity;
-    cart.items.splice(
-      cart.items.indexOf(oldItem),
-      1
-    );
+    cart.items.splice(cart.items.indexOf(oldItem), 1);
   } else {
     oldItem.size = newSize;
   }
@@ -190,15 +227,11 @@ const updateCartItemSize = async (
   await cart.save();
 };
 
-const removeFromCart = async (
-  ownerId,
-  productId,
-  size,
-  color
-) => {
+const removeFromCart = async (ownerId, productId, size, color, stitching) => {
   const pull = { productId };
   if (size) pull.size = size;
   if (color) pull.color = color;
+  if (stitching) pull.stitching = stitching;
   await Cart.updateOne({ ownerId }, { $pull: { items: pull } });
 };
 
@@ -211,14 +244,17 @@ const updateQuantity = async (
   productId,
   size,
   color,
-  quantity
+  stitching,
+  quantity,
 ) => {
   if (quantity < 1) throw new AppError("Quantity must be at least 1", 400);
   const cart = await Cart.findOne({ ownerId });
   if (!cart) throw new AppError("Cart not found", 404);
 
   const item = cart.items.find(
-    (i) => i.productId.toString() === productId && sameLine(i, { size, color })
+    (i) =>
+      i.productId.toString() === productId &&
+      sameLine(i, { size, color, stitching }),
   );
   if (!item) throw new AppError("Item not found in cart", 404);
 
@@ -242,7 +278,7 @@ const mergeCarts = async (userId, guestId) => {
   const inStockIds = new Set(inStockProducts.map((p) => p._id.toString()));
 
   const validGuestItems = guestCart.items.filter((item) =>
-    inStockIds.has(item.productId.toString())
+    inStockIds.has(item.productId.toString()),
   );
 
   if (!userCart) {
@@ -255,7 +291,9 @@ const mergeCarts = async (userId, guestId) => {
   } else {
     for (const guestItem of validGuestItems) {
       const existing = userCart.items.find(
-        (i) => i.productId.toString() === guestItem.productId.toString() && sameLine(i, guestItem)
+        (i) =>
+          i.productId.toString() === guestItem.productId.toString() &&
+          sameLine(i, guestItem),
       );
       if (existing) {
         existing.quantity += guestItem.quantity;

@@ -9,15 +9,11 @@ const { slugify } = require("../config/slugify");
 
 // ── Slug ───────────────────────────────────────────────────
 
-const generateUniqueSlug = async (
-  title,
-  excludeId,
-  usedSlugs
-) => {
+const generateUniqueSlug = async (title, excludeId, usedSlugs) => {
   const base = slugify(title);
   let slug = base;
   let counter = 1;
-  for (; ;) {
+  for (;;) {
     if (usedSlugs?.has(slug)) {
       slug = `${base}-${counter++}`;
       continue;
@@ -60,16 +56,20 @@ const buildMongoFilter = (q) => {
 // after; usesRankField tells callers whether that stage is needed.
 const buildSort = (sort) => {
   switch (sort) {
-    case "price-asc": return { sort: { price: 1 }, usesRankField: false };
-    case "price-desc": return { sort: { price: -1 }, usesRankField: false };
-    case "oldest": return { sort: { _rankOrder: 1, _id: 1 }, usesRankField: true };
+    case "price-asc":
+      return { sort: { price: 1 }, usesRankField: false };
+    case "price-desc":
+      return { sort: { price: -1 }, usesRankField: false };
+    case "oldest":
+      return { sort: { _rankOrder: 1, _id: 1 }, usesRankField: true };
     // "Best Selling" (Shop page default) and the homepage Best Sellers grid
     // both fall through here — ranked products (displayOrder 1, 2, 3...)
     // show first in ascending order, unranked ones (displayOrder 0) trail
     // after. Tie-break uses _id (not createdAt) because several existing
     // products have no createdAt set, which made their relative order
     // unstable — _id always exists and already encodes creation time.
-    default: return { sort: { _rankOrder: 1, _id: -1 }, usesRankField: true };
+    default:
+      return { sort: { _rankOrder: 1, _id: -1 }, usesRankField: true };
   }
 };
 
@@ -100,7 +100,7 @@ const attachDiscount = (productId, discounts) => {
   const product = discounts.find(
     (d) =>
       d.type === "product" &&
-      d.productIds.some((pid) => pid?.toString() === productId)
+      d.productIds.some((pid) => pid?.toString() === productId),
   );
   const global = discounts.find((d) => d.type === "all_products");
   const applicable = product ?? global ?? null;
@@ -212,11 +212,17 @@ const createProduct = async (body) => {
     status: body.status ?? "active",
     isNew: body.isNew === "true" || body.isNew === true,
     isBestSeller: body.isBestSeller === "true" || body.isBestSeller === true,
-    showInYouMayAlsoLike: body.showInYouMayAlsoLike === "true" || body.showInYouMayAlsoLike === true,
+    showInYouMayAlsoLike:
+      body.showInYouMayAlsoLike === "true" ||
+      body.showInYouMayAlsoLike === true,
+    isStitched: body.isStitched === "true" || body.isStitched === true,
+    isUnstitched: body.isUnstitched === "true" || body.isUnstitched === true,
+    stitchedPrice: body.stitchedPrice ? Number(body.stitchedPrice) : null,
     category: body.category ?? [],
     sizes: body.sizes ?? [],
     colors: body.colors ?? [],
-    displayOrder: body.displayOrder !== undefined ? Number(body.displayOrder) : 0,
+    displayOrder:
+      body.displayOrder !== undefined ? Number(body.displayOrder) : 0,
   });
 };
 
@@ -232,21 +238,42 @@ const updateProduct = async (id, body) => {
   if (body.comparePrice !== undefined) {
     updates.comparePrice = body.comparePrice ? Number(body.comparePrice) : null;
   }
-  if (body.stock !== undefined) updates.stock = body.stock === "true" || body.stock === true;
+  if (body.stock !== undefined)
+    updates.stock = body.stock === "true" || body.stock === true;
   if (body.status !== undefined) updates.status = body.status;
-  if (body.isNew !== undefined) updates.isNew = body.isNew === "true" || body.isNew === true;
+  if (body.isNew !== undefined)
+    updates.isNew = body.isNew === "true" || body.isNew === true;
   if (body.isBestSeller !== undefined) {
-    updates.isBestSeller = body.isBestSeller === "true" || body.isBestSeller === true;
+    updates.isBestSeller =
+      body.isBestSeller === "true" || body.isBestSeller === true;
   }
   if (body.showInYouMayAlsoLike !== undefined) {
-    updates.showInYouMayAlsoLike = body.showInYouMayAlsoLike === "true" || body.showInYouMayAlsoLike === true;
+    updates.showInYouMayAlsoLike =
+      body.showInYouMayAlsoLike === "true" ||
+      body.showInYouMayAlsoLike === true;
+  }
+  if (body.isStitched !== undefined) {
+    updates.isStitched = body.isStitched === "true" || body.isStitched === true;
+  }
+  if (body.isUnstitched !== undefined) {
+    updates.isUnstitched =
+      body.isUnstitched === "true" || body.isUnstitched === true;
+  }
+  if (body.stitchedPrice !== undefined) {
+    updates.stitchedPrice = body.stitchedPrice
+      ? Number(body.stitchedPrice)
+      : null;
   }
   if (body.category !== undefined) updates.category = body.category;
   if (body.sizes !== undefined) updates.sizes = body.sizes;
   if (body.colors !== undefined) updates.colors = body.colors;
-  if (body.displayOrder !== undefined) updates.displayOrder = Number(body.displayOrder);
+  if (body.displayOrder !== undefined)
+    updates.displayOrder = Number(body.displayOrder);
 
-  const product = await Product.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
+  const product = await Product.findByIdAndUpdate(id, updates, {
+    new: true,
+    runValidators: true,
+  });
   if (!product) throw new AppError("Product not found", 404);
   return product;
 };
@@ -280,7 +307,12 @@ const stripBom = () => {
     transform(chunk, _enc, cb) {
       if (!seen) {
         seen = true;
-        if (chunk.length >= 3 && chunk[0] === 0xef && chunk[1] === 0xbb && chunk[2] === 0xbf) {
+        if (
+          chunk.length >= 3 &&
+          chunk[0] === 0xef &&
+          chunk[1] === 0xbb &&
+          chunk[2] === 0xbf
+        ) {
           chunk = chunk.subarray(3);
         }
       }
@@ -302,7 +334,7 @@ const bulkImportFromCSV = async (filePath) => {
         .on("error", reject);
     });
   } finally {
-    fs.unlink(filePath, () => { });
+    fs.unlink(filePath, () => {});
   }
 
   if (rows.length === 0) throw new AppError("CSV is empty", 400);
@@ -312,7 +344,10 @@ const bulkImportFromCSV = async (filePath) => {
   const usedSlugs = new Set();
 
   const splitList = (value) =>
-    value.split(",").map((v) => v.trim()).filter(Boolean);
+    value
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
 
   for (const row of rows) {
     const title = (row.title || row.Title || "").trim();
@@ -327,10 +362,16 @@ const bulkImportFromCSV = async (filePath) => {
       images: splitList(row.images || row.Images || ""),
       price: Number(row.price || row.Price || 0),
       comparePrice: comparePrice > 0 ? comparePrice : null,
-      category: splitList(row.category || row.Category || "").map((c) => c.toLowerCase()),
-      sizes: splitList(row.sizes || row.Sizes || "").map((s) => s.toUpperCase()),
+      category: splitList(row.category || row.Category || "").map((c) =>
+        c.toLowerCase(),
+      ),
+      sizes: splitList(row.sizes || row.Sizes || "").map((s) =>
+        s.toUpperCase(),
+      ),
       isNew: (row.isNew || row.IsNew || "false").toLowerCase() === "true",
-      isBestSeller: (row.isBestSeller || row.IsBestSeller || "false").toLowerCase() === "true",
+      isBestSeller:
+        (row.isBestSeller || row.IsBestSeller || "false").toLowerCase() ===
+        "true",
       stock: (row.stock || row.Stock || "true").toLowerCase() !== "false",
       status: (row.status || row.Status || "active").toLowerCase(),
     });

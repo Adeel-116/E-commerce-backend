@@ -1,12 +1,12 @@
-const SHIPPING_COST = 0;
+const SHIPPING_COST = 140;
 const FREE_SHIPPING_THRESHOLD = 0;
-const FREE_SHIPPING_LABEL = "Free shipping";
+const FREE_SHIPPING_LABEL = "Standard shipping";
 
-// Shipping is free site-wide, no minimum spend.
+// Standard shipping is 140 Rs site-wide.
 const calculateShipping = () => ({
-  cost: 0,
+  cost: 140,
   label: FREE_SHIPPING_LABEL,
-  isFreeShipping: true,
+  isFreeShipping: false,
 });
 
 module.exports = { SHIPPING_COST, FREE_SHIPPING_THRESHOLD, calculateShipping };

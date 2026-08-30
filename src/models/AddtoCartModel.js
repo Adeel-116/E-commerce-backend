@@ -16,13 +16,18 @@ const cartItemSchema = new Schema(
       type: String,
       default: null,
     },
+    stitching: {
+      type: String,
+      enum: ["stitched", "unstitched", null],
+      default: null,
+    },
     quantity: {
       type: Number,
       default: 1,
       min: 1,
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const cartSchema = new Schema(
@@ -46,7 +51,7 @@ const cartSchema = new Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // TTL for guest carts
