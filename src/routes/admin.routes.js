@@ -11,10 +11,12 @@ const {
   getAllOrders,
   updateOrderStatus,
   updatePaymentStatus,
+  updateOrderDetails,
   deleteOrder,
   getOrderEmails,
   exportOrders,
 } = require("../controllers/order.controller");
+
 const { getDashboardStats } = require("../controllers/dashboard.controller");
 const {
   createDiscount,
@@ -45,6 +47,7 @@ router.use(protect, protectAdmin);
 router.get("/orders", getAllOrders);
 router.patch("/orders/status/:orderId", updateOrderStatus);
 router.patch("/orders/payment-status/:orderId", updatePaymentStatus);
+router.patch("/edit-order/:orderId", updateOrderDetails);
 router.delete("/orders/delete", deleteOrder);
 router.get("/get-orders-email", getOrderEmails);
 
