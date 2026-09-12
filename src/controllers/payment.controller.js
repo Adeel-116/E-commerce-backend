@@ -10,6 +10,7 @@ const { applyBundlePricing } = require("../services/bundle.service");
 const { calculateShipping } = require("../services/shipping.service");
 const { generateOrderId } = require("../utils/generateOrderId");
 const { User } = require("../models/UserModel");
+const { AbandonedCheckout } = require("../models/AbandonedCheckoutModel");
 
 const normalizeColor = (color) => color ?? null;
 
@@ -32,7 +33,10 @@ const createCodOrder = async (req, res) => {
     const { ownerId, ownerType } = req.cartOwner;
     const isAuthenticated = ownerType === "user";
     const userId = isAuthenticated ? ownerId : undefined;
-    const { shippingAddress, guestEmail, couponCode } = req.body;
+    const { shippingAddress, guestEmail, couponCode, paymentMethod = "cod" } = req.body;
+    if (!["cod", "bank_transfer"].includes(paymentMethod)) {
+      return res.status(400).json({ success: false, message: "Invalid payment method" });
+    }
 
     // Email is optional for both guests and account holders — a COD order
     // can still be fulfilled with just a delivery address and phone number,
@@ -92,7 +96,7 @@ const createCodOrder = async (req, res) => {
     let couponSavings = 0;
     let couponDiscount;
     if (couponCode) {
-      const { coupon, summary } = await validateCoupon(couponCode, afterBundleSubtotal, customerEmail);
+      const { coupon, summary } = await validateCoupon(couponCode, afterBundleSubtotal, customerEmail, bundledCartItems);
       couponSavings = summary.discount;
       couponDiscount = {
         discountId: coupon._id.toString(),
@@ -148,7 +152,10 @@ const createCodOrder = async (req, res) => {
       pricing: { subtotal: rawSubtotal, shipping: shippingCost, discount: totalDiscount, bundleSavings, total },
       appliedDiscounts,
       shippingAddress,
-      payment: { method: "cod", status: "pending" },
+      payment: {
+        method: paymentMethod,
+        status: "pending",
+      },
       status: "processing",
     });
 
@@ -158,6 +165,9 @@ const createCodOrder = async (req, res) => {
       if (isFirstOrder) await OrderModel.updateOne({ _id: order._id }, { $set: { isFirstOrder: true } });
     }
     await Cart.updateOne({ ownerId }, { $set: { items: [] } });
+    // It is no longer abandoned once the order exists. Removing the snapshot
+    // also lets the same customer start a fresh tracked checkout later.
+    await AbandonedCheckout.deleteOne({ ownerId });
 
     return res.status(201).json({ success: true, orderId, total });
   } catch (err) {
@@ -208,7 +218,15 @@ const applyCoupon = async (req, res) => {
       req.cartOwner?.ownerType === "user" ? req.cartOwner.ownerId : undefined
     );
 
-    const { coupon, summary } = await validateCoupon(code, subtotal, customerEmail);
+    const checkoutCart = await Cart.findOne({ ownerId: req.cartOwner.ownerId }).populate("items.productId", "price");
+    const couponItems = (checkoutCart?.items || []).filter((item) => item.productId).map((item) => ({
+      productId: item.productId._id.toString(),
+      price: Number(item.productId.price || 0),
+      quantity: Number(item.quantity || 1),
+      subtotal: Number(item.productId.price || 0) * Number(item.quantity || 1),
+    }));
+
+    const { coupon, summary } = await validateCoupon(code, subtotal, customerEmail, couponItems);
 
     return res.status(200).json({
       success: true,

@@ -29,6 +29,12 @@ const discountSchema = new mongoose.Schema(
       },
     ],
 
+    customerEmails: [{
+      type: String,
+      lowercase: true,
+      trim: true,
+    }],
+
     valueType: {
       type: String,
       enum: ["percentage", "fixed"],

@@ -115,6 +115,7 @@ const UPDATABLE_FIELDS = [
   "type",
   "couponType",
   "productIds",
+  "customerEmails",
   "valueType",
   "value",
   "code",
@@ -152,6 +153,11 @@ const createDiscount = async (body) => {
 
   // Coupon validation
   if (body.type === "coupon") {
+    body.productIds = Array.isArray(body.productIds) ? body.productIds.filter(Boolean) : [];
+    body.customerEmails = Array.isArray(body.customerEmails)
+      ? [...new Set(body.customerEmails.map((email) => String(email).toLowerCase().trim()).filter(Boolean))]
+      : [];
+
     if (!body.code) {
       throw new AppError("Coupon code is required.", 400);
     }
@@ -191,7 +197,7 @@ const createDiscount = async (body) => {
 
   // Prevent productIds for other discount types
   if (
-    body.type !== "product" &&
+    !["product", "coupon"].includes(body.type) &&
     body.productIds &&
     body.productIds.length > 0
   ) {
@@ -274,7 +280,7 @@ const getActiveRewardCoupon = async () => {
   }).lean();
 };
 
-const validateCoupon = async (code, subtotal, email) => {
+const validateCoupon = async (code, subtotal, email, cartItems = []) => {
   const coupon = await Discount.findOne({ type: "coupon", code: code.toUpperCase() }).lean();
   if (!coupon || !isLive(coupon)) {
     throw new AppError("Invalid or expired coupon", 400);
@@ -286,7 +292,21 @@ const validateCoupon = async (code, subtotal, email) => {
     await assertRewardEligibility(coupon, email);
   }
 
-  const discountAmount = applyValue(subtotal, coupon.valueType, coupon.value);
+  const normalizedEmail = String(email || "").toLowerCase().trim();
+  if (coupon.customerEmails?.length && !coupon.customerEmails.includes(normalizedEmail)) {
+    throw new AppError("This coupon is assigned to a different customer.", 403);
+  }
+  let eligibleSubtotal = Number(subtotal);
+  if (coupon.productIds?.length) {
+    const allowed = new Set(coupon.productIds.map((id) => id.toString()));
+    eligibleSubtotal = cartItems.filter((item) => allowed.has(String(item.productId?._id || item.productId)))
+      .reduce((sum, item) => sum + Number(item.subtotal ?? item.price * item.quantity), 0);
+    if (eligibleSubtotal <= 0) {
+      throw new AppError("This coupon is not valid for the products in your cart.", 400);
+    }
+  }
+
+  const discountAmount = applyValue(eligibleSubtotal, coupon.valueType, coupon.value);
 
   return {
     valid: true,

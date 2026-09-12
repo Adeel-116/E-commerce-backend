@@ -65,6 +65,7 @@ const PaymentSchema = new Schema(
             default: "pending",
         },
         paidAt: { type: Date },
+        transactionId: { type: String, trim: true, maxlength: 120 },
     },
     { _id: false }
 );

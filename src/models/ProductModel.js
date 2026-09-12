@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-const CATEGORY_OPTIONS = ["maxi", "fashion", "top-jeans", "western"];
 const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL"];
 
 const colorVariantSchema = new mongoose.Schema(
@@ -19,12 +18,13 @@ const productSchema = new mongoose.Schema(
     slug: { type: String, unique: true },
     description: { type: String, default: "" },
     images: { type: [String], default: [] },
+    measurementImage: { type: String, default: "" },
     price: { type: Number, required: true, default: 0 },
     comparePrice: { type: Number, default: null },
     isStitched: { type: Boolean, default: false },
     isUnstitched: { type: Boolean, default: false },
     stitchedPrice: { type: Number, default: null },
-    category: { type: [String], enum: CATEGORY_OPTIONS, default: [] },
+    category: { type: [String], default: [] },
     sizes: { type: [String], enum: SIZE_OPTIONS, default: [] },
     colors: { type: [colorVariantSchema], default: [] },
     isNew: { type: Boolean, default: false },
@@ -48,5 +48,4 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ productId: 1 }, { unique: true });
 
 module.exports = mongoose.model("Product", productSchema);
-module.exports.CATEGORY_OPTIONS = CATEGORY_OPTIONS;
 module.exports.SIZE_OPTIONS = SIZE_OPTIONS;

@@ -38,6 +38,7 @@ const buildMongoFilter = (q) => {
   if (q.category) filter.category = { $in: [q.category] };
   if (q.size) filter.sizes = { $in: [q.size] };
   if (q.isBestSeller) filter.isBestSeller = q.isBestSeller === "true";
+  if (q.isNew !== undefined) filter.isNew = q.isNew === "true";
   if (q.minPrice || q.maxPrice) {
     const r = {};
     if (q.minPrice) r.$gte = Number(q.minPrice);
@@ -206,6 +207,7 @@ const createProduct = async (body) => {
     slug,
     description: body.description ?? "",
     images: body.images ?? [],
+    measurementImage: body.measurementImage ?? "",
     price: Number(body.price) || 0,
     comparePrice: body.comparePrice ? Number(body.comparePrice) : null,
     stock: body.stock === "true" || body.stock === true,
@@ -234,6 +236,8 @@ const updateProduct = async (id, body) => {
   }
   if (body.description !== undefined) updates.description = body.description;
   if (body.images !== undefined) updates.images = body.images;
+  if (body.measurementImage !== undefined)
+    updates.measurementImage = body.measurementImage ?? "";
   if (body.price !== undefined) updates.price = Number(body.price);
   if (body.comparePrice !== undefined) {
     updates.comparePrice = body.comparePrice ? Number(body.comparePrice) : null;
