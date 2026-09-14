@@ -36,6 +36,8 @@ const buildMongoFilter = (q) => {
   if (q.stock !== undefined) filter.stock = q.stock === "true";
   if (q.status) filter.status = q.status;
   if (q.category) filter.category = { $in: [q.category] };
+  if (q.stitching === "stitched") filter.isStitched = true;
+  if (q.stitching === "unstitched") filter.isUnstitched = true;
   if (q.size) filter.sizes = { $in: [q.size] };
   if (q.isBestSeller) filter.isBestSeller = q.isBestSeller === "true";
   if (q.isNew !== undefined) filter.isNew = q.isNew === "true";

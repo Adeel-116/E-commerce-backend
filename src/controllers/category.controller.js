@@ -5,20 +5,6 @@ const cloudinary = require("../config/cloudinary");
 const { AppError } = require("../utils/AppError");
 const { slugify } = require("../config/slugify");
 
-const DEFAULT_CATEGORIES = [
-  { name: "Western Fashion", slug: "western", image: { url: "/category-western.avif", publicId: "" }, order: 1 },
-  { name: "Top & Jeans", slug: "top-jeans", image: { url: "/category-top-jeans.avif", publicId: "" }, order: 2 },
-  { name: "Pakistani Fashion", slug: "fashion", image: { url: "/category-fashion.avif", publicId: "" }, order: 3 },
-  { name: "Maxi", slug: "maxi", image: { url: "/category-maxi.avif", publicId: "" }, order: 4 },
-];
-
-async function ensureDefaults() {
-  if (await Category.exists({})) return;
-  await Category.bulkWrite(DEFAULT_CATEGORIES.map((category) => ({
-    updateOne: { filter: { slug: category.slug }, update: { $setOnInsert: category }, upsert: true },
-  })));
-}
-
 const upload = (file) => new Promise((resolve, reject) => {
   cloudinary.uploader.upload_stream(
     { folder: "categories", resource_type: "image" },
@@ -49,7 +35,6 @@ function validate(body) {
 
 exports.listPublicCategories = async (_req, res, next) => {
   try {
-    await ensureDefaults();
     const data = await Category.find({ status: "active" }).sort({ order: 1, createdAt: 1 }).lean();
     res.set("Cache-Control", "no-store").json({ success: true, data });
   } catch (error) { next(error); }
@@ -57,7 +42,6 @@ exports.listPublicCategories = async (_req, res, next) => {
 
 exports.listAdminCategories = async (_req, res, next) => {
   try {
-    await ensureDefaults();
     const data = await Category.find().sort({ order: 1, createdAt: 1 }).lean();
     res.set("Cache-Control", "no-store").json({ success: true, data });
   } catch (error) { next(error); }
@@ -112,10 +96,12 @@ exports.deleteCategory = async (req, res, next) => {
     if (!mongoose.isValidObjectId(req.params.id)) throw new AppError("Invalid category ID", 400);
     const category = await Category.findById(req.params.id);
     if (!category) throw new AppError("Category not found", 404);
-    const productCount = await Product.countDocuments({ category: category.slug });
-    if (productCount) {
-      throw new AppError("This category is used by " + productCount + " product(s). Move those products before deleting it.", 409);
-    }
+    // Keep the products, but detach the category being removed. They remain
+    // available in the default All-products view.
+    await Product.updateMany(
+      { category: category.slug },
+      { $pull: { category: category.slug } },
+    );
     await category.deleteOne();
     await removeCloudinaryImage(category.image);
     res.json({ success: true });
