@@ -33,7 +33,7 @@ const getOrCreateCart = async (ownerId, ownerType) => {
 const getCart = async (ownerId) => {
   const cart = await Cart.findOne({ ownerId }).populate(
     "items.productId",
-    "title images colors price stock slug",
+    "title images colors price sizePrices stock slug",
   );
 
   const emptyPricing = {
@@ -66,7 +66,7 @@ const getCart = async (ownerId) => {
   }
 
   const rawCartItems = items.map((item) => {
-    let price = item.productId.price ?? 0;
+    let price = item.productId.sizePrices?.[item.size] ?? item.productId.price ?? 0;
     if (
       item.stitching === "stitched" &&
       typeof item.productId.stitchedPrice === "number"

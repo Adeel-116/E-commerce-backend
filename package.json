@@ -10,7 +10,9 @@
     "dev": "nodemon src/server.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
     "seed:products": "node src/scripts/seedProducts.js",
-    "seed:catalog": "node src/scripts/seedCatalog.js"
+    "seed:catalog": "node src/scripts/seedCatalog.js",
+    "import:ethnc-western": "node src/scripts/importEthncWestern.js",
+    "import:kids-terry": "node src/scripts/importKidsTerry.js"
   },
   "keywords": [],
   "author": "",
