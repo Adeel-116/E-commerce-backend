@@ -1,4 +1,4 @@
-﻿const mongoose = require("mongoose");
+const mongoose = require("mongoose");
 
 const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "1Y", "2Y", "3Y", "4Y", "5Y", "6Y", "2-3 Years", "4-5 Years", "5-6 Years"];
 
@@ -19,6 +19,7 @@ const productSchema = new mongoose.Schema(
     sourceVariants: { type: [mongoose.Schema.Types.Mixed], default: [] },
     title: { type: String, required: true },
     slug: { type: String, unique: true },
+    slugAliases: { type: [String], default: [] },
     description: { type: String, default: "" },
     images: { type: [String], default: [] },
     measurementImage: { type: String, default: "" },

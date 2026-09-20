@@ -175,7 +175,7 @@ const getSimilarProducts = async (excludeId, limit) => {
 
 const getProductById = async (id, slug) => {
   if (!id && !slug) throw new AppError("id or slug is required", 400);
-  const query = id ? { _id: id } : { slug };
+  const query = id ? { _id: id } : { $or: [{ slug }, { slugAliases: slug }] };
   const [product, discounts] = await Promise.all([
     Product.findOne(query).lean(),
     getActiveDiscounts(),
