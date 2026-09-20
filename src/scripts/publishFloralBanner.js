@@ -1,4 +1,4 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 const mongoose = require("mongoose");
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
@@ -52,7 +52,7 @@ async function main() {
         await Banner.updateMany({ _id: { $ne: banner._id }, order: { $gte: 0 } }, { $inc: { order: 1 } });
     }
     const first = await Banner.findOne().sort({ order: 1, createdAt: 1 }).lean();
-    if (String(first ? ._id) !== String(banner._id) || !first.desktop ? .url || !first.mobile ? .url) {
+    if (String(first ?._id) !== String(banner._id) || !first.desktop ?.url || !first.mobile ?.url) {
         throw new Error("New banner is not first in display order.");
     }
     console.log(JSON.stringify({
