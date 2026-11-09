@@ -24,7 +24,6 @@ exports.listBanners = async(_req, res, next) => {
             success: true,
             data: banners.map((banner) => ({
                 _id: banner.id,
-                title: banner.title,
                 href: banner.href,
                 order: banner.order,
                 textless: banner.textless,
@@ -45,16 +44,14 @@ exports.saveBanner = async(req, res, next) => {
             banner = await Banner.findById(req.params.id);
             if (!banner) throw new AppError("Banner not found", 404);
         }
-        const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
         const href = typeof req.body.href === "string" ? req.body.href.trim() : "/shop";
         const order = Number(req.body.order ?? 0);
-        if (!title || title.length > 150) throw new AppError("Title must be between 1 and 150 characters", 400);
         if (!/^\/(?!\/)/.test(href) || /[\\\s]/.test(href)) throw new AppError("Link must be a site path such as /shop", 400);
         if (!Number.isSafeInteger(order) || order < 0) throw new AppError("Order must be a non-negative integer", 400);
         if (!banner && (!req.files?.desktop?.[0] || !req.files?.mobile?.[0])) {
             throw new AppError("Both desktop and mobile images are required", 400);
         }
-        const values = { title, href, order };
+        const values = { href, order };
         if (req.body.textless !== undefined) values.textless = req.body.textless === "true" || req.body.textless === true;
         const replaced = [];
         for (const variant of["desktop", "mobile"]) {

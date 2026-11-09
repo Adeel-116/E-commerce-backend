@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
-const dns = require("dns");
 
-dns.setServers(["4.4.4.4", "8.8.8.8"]);
+// const dns = require("dns")
 
+// dns.setServers(["4.4.4.4", "8.8.8.8"])
 // Serverless functions can run many concurrent invocations of this module in
 // the same warm container. Without this cache, every invocation that arrives
 // before the first connect() resolves starts its own separate connection —
@@ -21,6 +21,9 @@ const connectDB = async () => {
       .connect(process.env.MONGO_URI, {
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 20000,
+        waitQueueTimeoutMS: 10000,
       })
       .then((conn) => {
         console.log(`MongoDB Connected: ${conn.connection.host}`);

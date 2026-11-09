@@ -25,16 +25,4 @@ const uploadImageBuffer = (buffer) => {
 };
 module.exports.uploadImageBuffer = uploadImageBuffer;
 
-// Get the optimized
-const getOptimizedUrl = (url) => {
-    if (!url || typeof url !== "string") return url;
-
-    if (!url.includes("/upload/")) return url;
-
-    const [base, path] = url.split("/upload/");
-
-    if (path.includes("q_auto,f_auto")) return url;
-
-    return `${base}/upload/q_auto,f_auto/${path}`;
-};
-module.exports.getOptimizedUrl = getOptimizedUrl;
+module.exports.getOptimizedUrl = require("../utils/imageDelivery").imageUrl;

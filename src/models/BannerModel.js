@@ -6,7 +6,6 @@ const imageSchema = new mongoose.Schema({
 }, { _id: false });
 
 const bannerSchema = new mongoose.Schema({
-  title: { type: String, required: true, trim: true, maxlength: 150 },
   href: { type: String, default: "/shop" },
   order: { type: Number, default: 0 },
   textless: { type: Boolean, default: false },

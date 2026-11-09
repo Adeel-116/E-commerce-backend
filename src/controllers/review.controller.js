@@ -1,3 +1,4 @@
+const { imageUrl } = require("../utils/imageDelivery");
 const Review = require("../models/ReviewModel");
 const { AppError } = require("../utils/AppError");
 const { uploadImageBuffer } = require("../config/cloudinary");
@@ -14,7 +15,7 @@ const normalize = (body) => ({
 
 const listPublicReviews = async (_req, res) => {
   const data = await Review.find({ active: true }).sort({ order: 1, createdAt: -1 }).lean();
-  res.json({ success: true, data });
+  res.json({ success: true, data: data.map(review => ({ ...review, ...(review.screenshot ? { screenshot: imageUrl(review.screenshot, 640) } : {}) })) });
 };
 
 const listAdminReviews = async (_req, res) => {

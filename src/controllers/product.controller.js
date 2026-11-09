@@ -1,3 +1,4 @@
+const { productImages } = require("../utils/imageDelivery");
 const { AppError } = require("../utils/AppError");
 const ProductService = require("../services/product.service");
 const { uploadImageBuffer } = require("../config/cloudinary");
@@ -6,7 +7,7 @@ const { uploadImageBuffer } = require("../config/cloudinary");
 
 const filterProducts = async (req, res) => {
   const result = await ProductService.filterProducts(req.query);
-  res.status(200).json({ success: true, ...result });
+  res.status(200).json({ success: true, ...result, data: result.data.map(product => productImages(product, { cards: true })) });
 };
 
 const getTitleSuggestions = async (req, res) => {
@@ -21,7 +22,7 @@ const getSimilarProducts = async (req, res) => {
   const limit = Number(req.query.limit) || 5;
   if (!excludeId) throw new AppError("excludeId is required", 400);
   const data = await ProductService.getSimilarProducts(excludeId, limit);
-  res.status(200).json({ success: true, total: data.length, data });
+  res.status(200).json({ success: true, total: data.length, data: data.map(product => productImages(product, { cards: true })) });
 };
 
 const getProductById = async (req, res) => {
@@ -29,7 +30,7 @@ const getProductById = async (req, res) => {
     req.query.id,
     req.query.slug
   );
-  res.status(200).json({ success: true, message: "Product fetched successfully", data });
+  res.status(200).json({ success: true, message: "Product fetched successfully", data: productImages(data) });
 };
 
 const getActiveCategories = async (req, res) => {
