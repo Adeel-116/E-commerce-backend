@@ -50,6 +50,7 @@ const {
 } = require("../controllers/review.controller");
 
 const router = Router();
+const storefrontSettings = require("../controllers/storefrontSettings.controller");
 const banners = require("../controllers/banner.controller");
 const { uploadBanner } = require("../middleware/uploadBanner");
 const upload = multer({ storage: multer.memoryStorage() });
@@ -61,6 +62,8 @@ const {
 } = require("../controllers/category.controller");
 
 router.use(protect, protectAdmin);
+router.get("/storefront-settings", storefrontSettings.getAdminSettings);
+router.put("/storefront-settings", storefrontSettings.updateAdminSettings);
 router.get("/banners", banners.listBanners);
 router.post("/banners", uploadBanner, banners.saveBanner);
 router.put("/banners/:id", uploadBanner, banners.saveBanner);

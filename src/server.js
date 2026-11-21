@@ -12,7 +12,7 @@ const app = express();
 app.set("trust proxy", 1);
 
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3001", "https://www.zaryastyle.com", "https://zaryastyle.com"],
+  origin: ["http://localhost:3000", "http://localhost:3001", "https://www.zaryastyle.com", "https://zaryastyle.com", "https://zarya-style.netlify.app"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization", "x-guest-id"],
   exposedHeaders: ["x-guest-id"],

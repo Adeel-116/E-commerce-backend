@@ -15,6 +15,7 @@ const router = Router();
 router.get("/banners", require("../controllers/banner.controller").listBanners);
 router.get("/reviews", require("../controllers/review.controller").listPublicReviews);
 router.get("/categories", require("../controllers/category.controller").listPublicCategories);
+router.get("/storefront-settings", require("../controllers/storefrontSettings.controller").getPublicSettings);
 
 router.use(productRouter);
 router.use(authRouter);

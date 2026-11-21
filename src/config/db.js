@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-// const dns = require("dns")
+const dns = require("dns")
 
-// dns.setServers(["4.4.4.4", "8.8.8.8"])
+dns.setServers(["4.4.4.4", "8.8.8.8"])
 // Serverless functions can run many concurrent invocations of this module in
 // the same warm container. Without this cache, every invocation that arrives
 // before the first connect() resolves starts its own separate connection —
