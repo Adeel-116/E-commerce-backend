@@ -62,6 +62,14 @@ const track = async (req, res) => {
 };
 
 const dateRange = (req) => {
+  if (req.query.startDate || req.query.endDate) {
+    const start = new Date(`${req.query.startDate}T00:00:00.000Z`);
+    const end = new Date(`${req.query.endDate}T23:59:59.999Z`);
+    if (!req.query.startDate || !req.query.endDate || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
+      throw new Error("Invalid custom analytics date range");
+    }
+    return { start, end, days: Math.max(1, Math.ceil((end - start) / 86400000)) };
+  }
   const days = Math.min(365, Math.max(1, Number(req.query.days) || 30));
   const end = new Date();
   const start = new Date(end.getTime() - days * 86400000);

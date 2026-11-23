@@ -207,7 +207,7 @@ const createProduct = async (body) => {
     productId,
     title: body.title,
     slug,
-    description: body.description ?? "",
+    description: typeof body.description === "string" ? body.description.trim() : "",
     images: body.images ?? [],
     measurementImage: body.measurementImage ?? "",
     price: Number(body.price) || 0,
@@ -236,7 +236,9 @@ const updateProduct = async (id, body) => {
     updates.title = body.title;
     updates.slug = await generateUniqueSlug(body.title, id);
   }
-  if (body.description !== undefined) updates.description = body.description;
+  if (body.description !== undefined) {
+    updates.description = typeof body.description === "string" ? body.description.trim() : "";
+  }
   if (body.images !== undefined) updates.images = body.images;
   if (body.measurementImage !== undefined)
     updates.measurementImage = body.measurementImage ?? "";
