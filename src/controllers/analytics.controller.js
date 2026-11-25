@@ -30,7 +30,7 @@ const track = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid analytics identity" });
     }
     const path = clean(req.body.path, 300);
-    if (!path || path.startsWith("/admin")) return res.json({ success: true, tracked: false });
+    if (!path || path.startsWith("/admin") || path.startsWith("/dashboard")) return res.json({ success: true, tracked: false });
 
     const referrer = clean(req.body.referrer) || "Direct";
     const country = clean(req.headers["cf-ipcountry"] || req.headers["x-vercel-ip-country"], 80) || "Unknown";
